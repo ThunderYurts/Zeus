@@ -16,8 +16,10 @@ Zeus 支持两种模式，可以是可以是主从模式，也可以是 Replica 
 
 ## Task
 
-1. 负责使用分布式一致性Hash对已经注册 Yurt 进行工作的分配，分配的结果将记录在 Zookeeper中。
+1. 负责使用类似 Redis virtual slots 对已经注册 Yurt 进行工作的分配，分配的结果将记录在 Zookeeper 中。
 2. 负责对于 Yurt 节点增加或减少情况的处理，需要协调数据的转移。
+
+注意 Zeus 控制 Yurts 均是通过修改 zookeeper 中相应位置的数据来实现的，Yurt (Primary/Secondary) 均是通过阅读到了相应的数据发生修改之后，将会通过各种行动将自己的状态趋向 zookeeper 中所描述的状态，这一点和 Kubernetes 的设计理念相同。
 
 ## Dependency
 

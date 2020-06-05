@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option go_package = ".;source";
+package source;
+
+service Source {
+    rpc Source(SourceRequest) returns (SourceReply) {}
+}
+
+enum SourceCode {
+    SOURCE_SUCCESS = 0;
+    SOURCE_LOCK = 1;
+    SOURCE_ERROR = 2;
+}
+
+message SourceRequest {
+    string Key = 1;
+    string Action = 2;
+}
+
+message SourceReply {
+    SourceCode Code = 1;
+    string Addr = 2;
+}
