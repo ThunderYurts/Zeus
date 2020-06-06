@@ -2,7 +2,6 @@ package zookeeper
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -13,7 +12,6 @@ import (
 
 func TestConfigWatcher(t *testing.T) {
 	Convey("test config watcher", t, func() {
-		fmt.Println("test config watcher")
 		writer, _, err := zk.Connect([]string{"localhost:2181"}, 3*time.Second)
 		So(err, ShouldBeNil)
 		_, err = writer.Create("/config", []byte("config"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))

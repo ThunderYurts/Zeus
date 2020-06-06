@@ -15,9 +15,9 @@ func NewRoundRobin() RoundRobin {
 
 // Source func will return yurt addr chosen
 func (r *RoundRobin) Source(service string, hosts *ServiceHost) (string, error) {
-	hosts.lock.RLock()
-	defer hosts.lock.RUnlock()
-	addrs, exist := hosts.hosts[service]
+	hosts.Lock.RLock()
+	defer hosts.Lock.RUnlock()
+	addrs, exist := hosts.Hosts[service]
 	if !exist {
 		return "", errors.New("service not found")
 	}
