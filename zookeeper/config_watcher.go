@@ -34,7 +34,8 @@ func (cw *ConfigWatcher) Start() {
 	data, _, getCh, err := cw.conn.GetW(cw.zname)
 	if err != nil {
 		cw.wg.Done()
-		fmt.Println(err)
+		fmt.Printf("in config_watcher error :%v\n", err)
+		return
 	}
 	fmt.Println(string(data))
 	cw.channel <- data
@@ -44,6 +45,7 @@ func (cw *ConfigWatcher) Start() {
 			select {
 			case e := <-getCh:
 				{
+					fmt.Printf("in config watcher event: %v\n", e)
 					if e.Type == zk.EventNodeCreated {
 						fmt.Printf("has new node[%s] create\n", e.Path)
 					} else if e.Type == zk.EventNodeDeleted {
@@ -61,7 +63,6 @@ func (cw *ConfigWatcher) Start() {
 			case <-cw.ctx.Done():
 				{
 					close(cw.channel)
-					cw.conn.Close()
 					return
 				}
 			}

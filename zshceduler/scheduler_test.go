@@ -1,4 +1,4 @@
-package scheduler
+package zscheduler
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ThunderYurts/Zeus/zconst"
 	"github.com/ThunderYurts/Zeus/zookeeper"
 	"github.com/ThunderYurts/Zeus/zroute"
 	"github.com/samuel/go-zookeeper/zk"
@@ -17,7 +18,7 @@ import (
 func testScheduler(t *testing.T) {
 	Convey("test simple scheduler", t, func() {
 		zkAddr := []string{"localhost:2181"}
-		conn, _, err := zk.Connect(zkAddr, 5*time.Second)
+		conn, _, err := zk.Connect(zkAddr, 1*time.Second)
 		var s Scheduler
 		ctx, cancel := context.WithCancel(context.Background())
 		wg := &sync.WaitGroup{}
@@ -28,11 +29,11 @@ func testScheduler(t *testing.T) {
 		ServiceHost.Lock.Unlock()
 		_, err = conn.Create("/yurt/idle0", []byte("idle0"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 		So(err, ShouldBeNil)
-		ss, err := NewSimpleScheduler(ctx, wg, zkAddr, 2, &ServiceHost)
+		ss, err := NewSimpleScheduler(ctx, wg, conn, 2, &ServiceHost)
 		s = &ss
 		So(err, ShouldBeNil)
 		go func() {
-			s.Listen("/yurt")
+			s.Listen(zconst.YurtRoot)
 		}()
 		So(err, ShouldBeNil)
 		_, err = conn.Create("/yurt/idle1", []byte("idle1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
@@ -67,14 +68,15 @@ func testSchedulerAndWatcher(t *testing.T) {
 			sh.Sync(channel)
 		}()
 		var s Scheduler
-		ss, err := NewSimpleScheduler(ctx, wg, zkAddr, 1, &sh)
+		ss, err := NewSimpleScheduler(ctx, wg, conn, 1, &sh)
 		s = &ss
 		go func() {
-			s.Listen("/yurt")
+			s.Listen(zconst.YurtRoot)
 		}()
 
-		initSh := make(map[string][]string)
-		initSh["service1"] = []string{}
+		initSh := zookeeper.ZKServiceHost{}
+		initSh.Key = "service1"
+		initSh.Value = []string{}
 		buf := new(bytes.Buffer)
 		enc := gob.NewEncoder(buf)
 		err = enc.Encode(initSh)
@@ -85,7 +87,7 @@ func testSchedulerAndWatcher(t *testing.T) {
 		_, err = writer.Set("/config", buf.Bytes(), stat.Version)
 		So(err, ShouldBeNil)
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(5 * time.Second)
 
 		_, err = writer.Create("/yurt/idle00", []byte("idle00"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 		So(err, ShouldBeNil)
@@ -98,8 +100,9 @@ func testSchedulerAndWatcher(t *testing.T) {
 
 		time.Sleep(time.Second)
 
-		initSh = make(map[string][]string)
-		initSh["service1"] = []string{"localhost:9999"}
+		initSh = zookeeper.ZKServiceHost{}
+		initSh.Key = "service1"
+		initSh.Value = []string{"localhost:9999"}
 		buf = new(bytes.Buffer)
 		enc = gob.NewEncoder(buf)
 		err = enc.Encode(initSh)
@@ -126,16 +129,16 @@ func testSchedulerAndWatcher(t *testing.T) {
 
 func setup() {
 	zkAddr := []string{"localhost:2181"}
-	conn, _, _ := zk.Connect(zkAddr, 5*time.Second)
-	conn.Create("/yurt", []byte{}, 0, zk.WorldACL(zk.PermAll))
+	conn, _, _ := zk.Connect(zkAddr, 1*time.Second)
+	conn.Create(zconst.YurtRoot, []byte{}, 0, zk.WorldACL(zk.PermAll))
 	conn.Close()
 }
 
 func teardown() {
 	zkAddr := []string{"localhost:2181"}
-	conn, _, _ := zk.Connect(zkAddr, 5*time.Second)
-	_, stat, _ := conn.Get("/yurt")
-	_ = conn.Delete("/yurt", stat.Version)
+	conn, _, _ := zk.Connect(zkAddr, 1*time.Second)
+	_, stat, _ := conn.Get(zconst.YurtRoot)
+	_ = conn.Delete(zconst.YurtRoot, stat.Version)
 	conn.Close()
 }
 

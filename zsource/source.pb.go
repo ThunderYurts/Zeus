@@ -4,7 +4,7 @@
 // 	protoc        v3.5.1
 // source: protoc/source.proto
 
-package source
+package zsource
 
 import (
 	context "context"

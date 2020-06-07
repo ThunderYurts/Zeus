@@ -1,10 +1,9 @@
-package scheduler
+package zscheduler
 
 import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/ThunderYurts/Zeus/zroute"
 	"github.com/samuel/go-zookeeper/zk"
@@ -20,11 +19,7 @@ type SimpleScheduler struct {
 }
 
 // NewSimpleScheduler is a help function for new SimpleScheduler
-func NewSimpleScheduler(ctx context.Context, wg *sync.WaitGroup, zkAddr []string, minRequest int, ServiceHost *zroute.ServiceHost) (SimpleScheduler, error) {
-	conn, _, err := zk.Connect(zkAddr, 5*time.Second)
-	if err != nil {
-		return SimpleScheduler{}, err
-	}
+func NewSimpleScheduler(ctx context.Context, wg *sync.WaitGroup, conn *zk.Conn, minRequest int, ServiceHost *zroute.ServiceHost) (SimpleScheduler, error) {
 	return SimpleScheduler{
 		ctx:         ctx,
 		wg:          wg,
@@ -53,12 +48,12 @@ func (ss *SimpleScheduler) Schedule(registerNode string) error {
 			// scheduler to a service for secondary (maybe)
 			_, stat, err := ss.conn.Get(registerNode)
 			if err != nil {
-				fmt.Println(err.Error())
+				fmt.Printf("in scheduler loop1 error : %v", err)
 				return err
 			}
 			stat, err = ss.conn.Set(registerNode, []byte(key), stat.Version)
 			if err != nil {
-				fmt.Println(err.Error())
+				fmt.Printf("in scheduler loop2 error : %v", err)
 				return err
 			}
 			fmt.Printf("node %s is dispatched to %s\n", registerNode, key)
@@ -75,7 +70,7 @@ func (ss *SimpleScheduler) Listen(path string) error {
 	fmt.Printf("listen %s start\n", path)
 	fmt.Printf("idles %v\n", idles)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Printf("in scheduler listen1 error : %v", err)
 		return err
 	}
 	for _, idle := range idles {
@@ -87,16 +82,15 @@ func (ss *SimpleScheduler) Listen(path string) error {
 		select {
 		case <-ss.ctx.Done():
 			{
-				ss.conn.Close()
 				return err
 			}
 		case e := <-childChan:
 			{
-				fmt.Printf("event here %v\n", e)
+				fmt.Printf("simple_scheduler event: %v\n", e)
 				if e.Type != zk.EventNodeDeleted {
 					idles, _, childChan, err = ss.conn.ChildrenW(path)
 					if err != nil {
-						fmt.Println(err.Error())
+						fmt.Printf("in scheduler listen2 error : %v", err)
 					}
 					for _, idle := range idles {
 						ss.Schedule(path + "/" + idle)

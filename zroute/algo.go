@@ -5,6 +5,8 @@ import (
 	"encoding/gob"
 	"fmt"
 	"sync"
+
+	"github.com/ThunderYurts/Zeus/zookeeper"
 )
 
 // ServiceHost is a standard container that storages service addrs synced from zookeeper
@@ -23,7 +25,7 @@ func NewServiceHost() ServiceHost {
 
 // Sync will sync ServiceHost from channel
 func (sh *ServiceHost) Sync(channel <-chan []byte) {
-	var newHosts map[string][]string
+	var newHosts zookeeper.ZKServiceHost
 	for {
 		select {
 		case data, ok := <-channel:
@@ -31,15 +33,15 @@ func (sh *ServiceHost) Sync(channel <-chan []byte) {
 				if !ok {
 					return
 				}
-				newHosts = make(map[string][]string)
+				newHosts = zookeeper.ZKServiceHost{}
 				dec := gob.NewDecoder(bytes.NewBuffer(data))
 				if err := dec.Decode(&newHosts); err != nil {
-					fmt.Println(err)
+					fmt.Printf("err in algo decode :%v", err)
 				} else {
-					fmt.Printf("sync new hosts %v", newHosts)
+					fmt.Printf("sync new hosts %s:%v\n", newHosts.Key, newHosts)
 					// sync into the sh
 					sh.Lock.Lock()
-					sh.Hosts = newHosts
+					sh.Hosts[newHosts.Key] = newHosts.Value
 					sh.Lock.Unlock()
 				}
 			}

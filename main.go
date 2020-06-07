@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/ThunderYurts/Zeus/zconst"
 	"github.com/ThunderYurts/Zeus/zeus"
 )
 
@@ -29,10 +30,14 @@ func main() {
 		return
 	}
 	rootContext, finalizeFunc := context.WithCancel(context.Background())
+	// TODO split slots
+	zeus := zeus.NewZeus(rootContext, finalizeFunc, name, 0, zconst.TotalSlotNum)
 
-	zeus := zeus.NewZeus(rootContext, finalizeFunc, name)
-
-	zeus.Start(sourcePort)
+	err := zeus.Start(sourcePort, []string{"localhost:2181"})
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
 
