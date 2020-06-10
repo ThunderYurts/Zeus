@@ -1,9 +1,7 @@
 package zeus
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
 	"fmt"
 	"strconv"
 	"sync"
@@ -107,24 +105,16 @@ func (z *Zeus) initZk(zkAddr []string) error {
 
 	// TODO exist is a very strange state
 	// Init segement ServiceHost
-	initServiceHost := zookeeper.ZKServiceHost{Key: segment, Value: []string{}}
+	// initServiceHost := zookeeper.ZKServiceHost{Service: segment, Primary: "", Secondary: []string{}}
 
-	buf := new(bytes.Buffer)
-	enc := gob.NewEncoder(buf)
-	err = enc.Encode(initServiceHost)
-	if err != nil {
-		return err
-	}
-	//TODO sync first or init default
-	// services, _, err := z.conn.Children(zconst.ServiceRoot)
+	// buf := new(bytes.Buffer)
+	// enc := gob.NewEncoder(buf)
+	// err = enc.Encode(initServiceHost)
 	// if err != nil {
 	// 	return err
 	// }
-	sericeHostName := zconst.ServiceRoot + "/" + segment
-	err = existOrCreate(z.conn, sericeHostName, buf.Bytes())
-	if err != nil {
-		return err
-	}
+	//TODO sync first or init default (move to source)
+
 	return nil
 
 }

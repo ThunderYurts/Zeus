@@ -16,17 +16,11 @@ import (
 	"github.com/samuel/go-zookeeper/zk"
 )
 
-// Segment is present slot segment
-type Segment struct {
-	Begin int
-	End   int
-	Block bool
-}
-
 // PreSlotsManager will manage pre dispatch and sync to
 type PreSlotsManager struct {
+	lock     *sync.Mutex
 	conn     *zk.Conn
-	segments []Segment
+	segments []zroute.Segment
 }
 
 // NewPreSlotsManager will sync old data first
@@ -36,7 +30,7 @@ func NewPreSlotsManager(conn *zk.Conn) (PreSlotsManager, error) {
 		return PreSlotsManager{}, err
 	}
 	if !exist {
-		segs := []Segment{}
+		segs := []zroute.Segment{}
 		buf := new(bytes.Buffer)
 		enc := gob.NewEncoder(buf)
 		err := enc.Encode(segs)
@@ -48,39 +42,45 @@ func NewPreSlotsManager(conn *zk.Conn) (PreSlotsManager, error) {
 			return PreSlotsManager{}, err
 		}
 		return PreSlotsManager{
-			conn:     conn,
-			segments: segs,
-		}, nil
-	} else {
-		data, _, err := conn.Get(zconst.PreSlotsRoot)
-		if err != nil {
-			return PreSlotsManager{}, err
-		}
-		dec := gob.NewDecoder(bytes.NewBuffer(data))
-		segs := []Segment{}
-		err = dec.Decode(&segs)
-		if err != nil {
-			return PreSlotsManager{}, err
-		}
-		return PreSlotsManager{
+			lock:     &sync.Mutex{},
 			conn:     conn,
 			segments: segs,
 		}, nil
 	}
+	data, _, err := conn.Get(zconst.PreSlotsRoot)
+	if err != nil {
+		return PreSlotsManager{}, err
+	}
+	dec := gob.NewDecoder(bytes.NewBuffer(data))
+	segs := []zroute.Segment{}
+	err = dec.Decode(&segs)
+	if err != nil {
+		return PreSlotsManager{}, err
+	}
+	return PreSlotsManager{
+		lock:     &sync.Mutex{},
+		conn:     conn,
+		segments: segs,
+	}, nil
 }
 
 // PreDispatch will block new segment
-func (psm *PreSlotsManager) PreDispatch() (Segment, error) {
+func (psm *PreSlotsManager) PreDispatch() (uint32, uint32, string, error) {
 	mid := -1
 	end := -1
-	for _, seg := range psm.segments {
+	serviceName := ""
+	psm.lock.Lock()
+	defer psm.lock.Unlock()
+	for index, seg := range psm.segments {
+		fmt.Printf("in predispatch seg %v\n", seg)
 		if seg.Block {
 			continue
 		} else {
-			mid = (seg.Begin + seg.End) / 2
-			end = seg.End
-			seg.End = mid
-			seg.Block = false
+			mid = int(seg.Begin+seg.End) / 2
+			end = int(seg.End)
+			psm.segments[index].End = uint32(mid)
+			psm.segments[index].Block = false
+			serviceName = seg.ServiceName
 			break
 		}
 	}
@@ -90,39 +90,47 @@ func (psm *PreSlotsManager) PreDispatch() (Segment, error) {
 			mid = 0
 			end = zconst.TotalSlotNum
 		} else {
-			return Segment{}, errors.New("no segment can split")
+			return 0, 0, "", errors.New("no segment can split")
 		}
 	}
-	newSeg := Segment{Begin: mid, End: end, Block: true}
+	newSeg := zroute.Segment{Begin: uint32(mid), End: uint32(end), Block: true, ServiceName: ""}
+	fmt.Printf("add new segment %v\n", newSeg)
 	psm.segments = append(psm.segments, newSeg)
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
 	err := enc.Encode(psm.segments)
 	if err != nil {
-		return Segment{}, err
+		return 0, 0, "", err
 	}
 	_, stat, err := psm.conn.Get(zconst.PreSlotsRoot)
 	if err != nil {
-		return Segment{}, err
+		return 0, 0, "", err
 	}
 	stat, err = psm.conn.Set(zconst.PreSlotsRoot, buf.Bytes(), stat.Version)
 	if err != nil {
-		return Segment{}, err
+		return 0, 0, "", err
 	}
-	return newSeg, nil
+	return uint32(mid), uint32(end), serviceName, nil
 
 }
 
 // Commit will free segment
-func (psm *PreSlotsManager) Commit(begin int, end int) error {
-	for _, seg := range psm.segments {
+func (psm *PreSlotsManager) Commit(begin uint32, end uint32) error {
+	fmt.Printf("psm commit %v-%v\n", begin, end)
+	psm.lock.Lock()
+	defer psm.lock.Unlock()
+	for i, seg := range psm.segments {
+		fmt.Printf("begin: %v %v  == %v\n", begin, seg.Begin, begin == seg.Begin)
+		fmt.Printf("begin: %v %v  == %v\n", end, seg.End, end == seg.End)
 		if seg.Begin == begin && seg.End == end {
-			seg.Block = false
+			fmt.Printf("set seg %v block false\n", seg)
+			psm.segments[i].Block = false
 			break
 		}
 	}
 	_, stat, err := psm.conn.Get(zconst.PreSlotsRoot)
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	buf := new(bytes.Buffer)
@@ -149,10 +157,11 @@ type SimpleScheduler struct {
 	ServiceHost *zroute.ServiceHost
 	sc          *zslot.SlotCluster
 	psm         *PreSlotsManager
+	segChannel  chan zroute.Segment
 }
 
 // NewSimpleScheduler is a help function for new SimpleScheduler
-func NewSimpleScheduler(ctx context.Context, wg *sync.WaitGroup, conn *zk.Conn, minRequest int, ServiceHost *zroute.ServiceHost, sc *zslot.SlotCluster) (SimpleScheduler, error) {
+func NewSimpleScheduler(ctx context.Context, wg *sync.WaitGroup, conn *zk.Conn, minRequest int, ServiceHost *zroute.ServiceHost, sc *zslot.SlotCluster, segChannel chan zroute.Segment) (SimpleScheduler, error) {
 	psm, err := NewPreSlotsManager(conn)
 	if err != nil {
 		return SimpleScheduler{}, nil
@@ -165,6 +174,7 @@ func NewSimpleScheduler(ctx context.Context, wg *sync.WaitGroup, conn *zk.Conn, 
 		ServiceHost: ServiceHost,
 		sc:          sc,
 		psm:         &psm,
+		segChannel:  segChannel,
 	}, nil
 }
 
@@ -188,8 +198,8 @@ func randomName(n int, allowedChars ...[]rune) string {
 
 // Schedule will dispatch yurt
 func (ss *SimpleScheduler) Schedule(registerNode string) error {
-	fmt.Printf("schedule register node \n")
 	ss.ServiceHost.Lock.RLock()
+	fmt.Printf("schedule register node %s \n", registerNode)
 	statistic := make(map[string]int)
 	for key, value := range ss.ServiceHost.Hosts {
 		statistic[key] = len(value)
@@ -204,9 +214,17 @@ func (ss *SimpleScheduler) Schedule(registerNode string) error {
 				fmt.Printf("in scheduler loop1 error : %v", err)
 				return err
 			}
-			stat, err = ss.conn.Set(registerNode, []byte(key), stat.Version)
+			regInfo := zookeeper.ZKRegister{ServiceName: key}
+			buf := new(bytes.Buffer)
+			enc := gob.NewEncoder(buf)
+			err = enc.Encode(regInfo)
 			if err != nil {
 				fmt.Printf("in scheduler loop2 error : %v", err)
+				return err
+			}
+			stat, err = ss.conn.Set(registerNode, buf.Bytes(), stat.Version)
+			if err != nil {
+				fmt.Printf("in scheduler loop3 error : %v", err)
 				return err
 			}
 			fmt.Printf("node %s is dispatched to %s\n", registerNode, key)
@@ -219,27 +237,40 @@ func (ss *SimpleScheduler) Schedule(registerNode string) error {
 	newName := randomName(10)
 	//TODO slot split
 
-	segment, err := ss.psm.PreDispatch()
+	begin, end, syncHost, err := ss.psm.PreDispatch()
 	if err != nil {
+		fmt.Printf("line 233 %v\n", err)
 		return err
 	}
-	newHosts := zookeeper.ZKServiceHost{SlotBegin: segment.Begin, SlotEnd: segment.End, Service: newName, Primary: "", Secondary: []string{}, SyncHost: ""}
+	fmt.Printf("dispatch segment %v-%v\n", begin, end)
+	newHosts := zookeeper.ZKServiceHost{SlotBegin: begin, SlotEnd: end, Service: newName, Primary: "", Secondary: []string{}, SyncHost: syncHost}
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
 	err = enc.Encode(newHosts)
 	if err != nil {
+		fmt.Printf("line 241 %v\n", err)
 		return err
 	}
 	_, err = ss.conn.Create(zconst.ServiceRoot+"/"+newName, buf.Bytes(), 0, zk.WorldACL(zk.PermAll))
+	if err != nil {
+		fmt.Printf("line 246 %v\n", err)
+		return err
+	}
 	_, stat, err := ss.conn.Get(registerNode)
+	if err != nil {
+		fmt.Printf("line 251 %v\n", err)
+		return err
+	}
 	regInfo := zookeeper.ZKRegister{ServiceName: newName}
 	buf = new(bytes.Buffer)
 	enc = gob.NewEncoder(buf)
 	err = enc.Encode(regInfo)
 	stat, err = ss.conn.Set(registerNode, buf.Bytes(), stat.Version)
 	if err != nil {
+		fmt.Printf("line 260 %v\n", err)
 		return err
 	}
+	fmt.Printf("create service %s\n", newName)
 	return nil
 }
 
@@ -248,6 +279,28 @@ func (ss *SimpleScheduler) Listen(path string) error {
 	idles, _, childChan, err := ss.conn.ChildrenW(path)
 	fmt.Printf("listen %s start\n", path)
 	fmt.Printf("idles %v\n", idles)
+	go func() {
+		for {
+			select {
+			case seg, ok := <-ss.segChannel:
+				{
+					if !ok {
+						return
+					}
+					err := ss.psm.Commit(seg.Begin, seg.End)
+					if err != nil {
+						fmt.Println(err.Error())
+						return
+					}
+					err = ss.sc.Dispatch(seg.Begin, seg.End, seg.ServiceName)
+					if err != nil {
+						fmt.Println(err.Error())
+						return
+					}
+				}
+			}
+		}
+	}()
 	if err != nil {
 		fmt.Printf("in scheduler listen1 error : %v", err)
 		return err
@@ -272,7 +325,11 @@ func (ss *SimpleScheduler) Listen(path string) error {
 						fmt.Printf("in scheduler listen2 error : %v", err)
 					}
 					for _, idle := range idles {
-						ss.Schedule(path + "/" + idle)
+						fmt.Printf("in simple scheduler idles : %s\n", idle)
+						if data, _, err := ss.conn.Get(path + "/" + idle); err == nil && len(data) == 0 {
+							fmt.Printf("dispatch yurt %s\n", idle)
+							ss.Schedule(path + "/" + idle)
+						}
 					}
 				}
 			}

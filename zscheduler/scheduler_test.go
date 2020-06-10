@@ -35,23 +35,23 @@ func testScheduler(t *testing.T) {
 		var s Scheduler
 		ctx, cancel := context.WithCancel(context.Background())
 		wg := &sync.WaitGroup{}
-		segChannel := make(chan Segment)
+		segChannel := make(chan zroute.Segment)
 		ServiceHost := zroute.NewServiceHost(ctx, wg, conn, segChannel)
 		ServiceHost.Lock.Lock()
 		ServiceHost.Hosts["service1"] = make([]string, 1)
 		ServiceHost.Hosts["service1"][0] = "127.0.0.1:9999"
 		ServiceHost.Lock.Unlock()
-		_, err = conn.Create("/yurt/idle0", []byte("idle0"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+		_, err = conn.Create("/yurt/idle0", []byte{}, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 		So(err, ShouldBeNil)
 		sc := zslot.NewSlotCluster(conn)
-		ss, err := NewSimpleScheduler(ctx, wg, conn, 2, &ServiceHost, &sc)
+		ss, err := NewSimpleScheduler(ctx, wg, conn, 2, &ServiceHost, &sc, segChannel)
 		s = &ss
 		So(err, ShouldBeNil)
 		go func() {
 			s.Listen(zconst.YurtRoot)
 		}()
 		So(err, ShouldBeNil)
-		_, err = conn.Create("/yurt/idle1", []byte("idle1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+		_, err = conn.Create("/yurt/idle1", []byte{}, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 		So(err, ShouldBeNil)
 		time.Sleep(1 * time.Second)
 		data0, _, err := conn.Get("/yurt/idle0")
@@ -95,12 +95,12 @@ func testSchedulerAndWatcher(t *testing.T) {
 		wg := &sync.WaitGroup{}
 		conn, _, err := zk.Connect(zkAddr, 3*time.Second)
 		So(err, ShouldBeNil)
-		segChannel := make(chan Segment)
+		segChannel := make(chan zroute.Segment)
 		sh := zroute.NewServiceHost(ctx, wg, conn, segChannel)
 		sh.Sync()
 		var s Scheduler
 		sc := zslot.NewSlotCluster(conn)
-		ss, err := NewSimpleScheduler(ctx, wg, conn, 2, &sh, &sc)
+		ss, err := NewSimpleScheduler(ctx, wg, conn, 2, &sh, &sc, segChannel)
 		s = &ss
 		go func() {
 			s.Listen(zconst.YurtRoot)
@@ -108,7 +108,7 @@ func testSchedulerAndWatcher(t *testing.T) {
 
 		time.Sleep(2 * time.Second)
 
-		_, err = writer.Create("/yurt/idle00", []byte("idle00"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+		_, err = writer.Create("/yurt/idle00", []byte{}, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 		So(err, ShouldBeNil)
 
 		time.Sleep(time.Second)
@@ -141,16 +141,16 @@ func testSchedulerAndWatcher(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		time.Sleep(1 * time.Second)
-		_, err = writer.Create("/yurt/idle01", []byte("idle01"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+		_, err = writer.Create("/yurt/idle01", []byte{}, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 		So(err, ShouldBeNil)
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 
 		data1, _, err := writer.Get("/yurt/idle01")
+		So(err, ShouldBeNil)
 		dec = gob.NewDecoder(bytes.NewBuffer(data1))
 		reg1 := zookeeper.ZKRegister{}
 		err = dec.Decode(&reg1)
-		So(err, ShouldBeNil)
 		So(err, ShouldBeNil)
 		So(reg1.ServiceName, ShouldEqual, "mockservice")
 
@@ -164,7 +164,7 @@ func testSchedulerAndWatcher(t *testing.T) {
 	})
 }
 
-func TestCreateNewService(t *testing.T) {
+func testCreateNewService(t *testing.T) {
 	setup()
 	Convey("test create new service", t, func() {
 		zkAddr := []string{"localhost:2181"}
@@ -176,12 +176,12 @@ func TestCreateNewService(t *testing.T) {
 		wg := &sync.WaitGroup{}
 		conn, _, err := zk.Connect(zkAddr, 3*time.Second)
 		So(err, ShouldBeNil)
-		segChannel := make(chan Segment)
-		sh := zroute.NewServiceHost(ctx, wg, segChannel)
+		segChannel := make(chan zroute.Segment)
+		sh := zroute.NewServiceHost(ctx, wg, conn, segChannel)
 		sh.Sync()
 		var s Scheduler
 		sc := zslot.NewSlotCluster(conn)
-		ss, err := NewSimpleScheduler(ctx, wg, conn, 1, &sh, &sc)
+		ss, err := NewSimpleScheduler(ctx, wg, conn, 1, &sh, &sc, segChannel)
 		s = &ss
 		go func() {
 			s.Listen(zconst.YurtRoot)
@@ -189,7 +189,7 @@ func TestCreateNewService(t *testing.T) {
 
 		time.Sleep(2 * time.Second)
 
-		_, err = writer.Create("/yurt/idle00", []byte("idle00"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+		_, err = writer.Create("/yurt/idle00", []byte{}, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 		So(err, ShouldBeNil)
 
 		time.Sleep(2 * time.Second)
@@ -237,7 +237,7 @@ func teardown() {
 func TestEverything(t *testing.T) {
 	// Maintaining this map is error-prone and cumbersome (note the subtle bug):
 	fs := map[string]func(*testing.T){
-		"testScheduler":           testScheduler,
+		// "testScheduler": testScheduler,
 		"testSchedulerAndWatcher": testSchedulerAndWatcher,
 	}
 	// You may be able to use the `importer` package to enumerate tests instead,

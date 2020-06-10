@@ -19,7 +19,7 @@ type SlotCluster struct {
 }
 
 // NewSlotCluster is a help function, we will try to read from the zk, if it is not existed, we will init it and dispatch all to default service
-func NewSlotCluster(conn *zk.Conn, ServiceName string) SlotCluster {
+func NewSlotCluster(conn *zk.Conn) SlotCluster {
 	exist, _, err := conn.Exists(zconst.SlotsRoot)
 	if err != nil {
 		panic(err)
@@ -36,7 +36,7 @@ func NewSlotCluster(conn *zk.Conn, ServiceName string) SlotCluster {
 	} else {
 		// default init
 		for i := uint32(0); i < zconst.TotalSlotNum; i = i + 1 {
-			config[i] = ServiceName
+			config[i] = ""
 		}
 		buf := new(bytes.Buffer)
 		enc := gob.NewEncoder(buf)
@@ -70,7 +70,7 @@ func (sc *SlotCluster) Hash(Key string) (string, error) {
 }
 
 //Dispatch will let some slot belong to some service
-func (sc *SlotCluster) Dispatch(begin uint32, end uint32, service string) {
+func (sc *SlotCluster) Dispatch(begin uint32, end uint32, service string) error {
 	sc.lock.Lock()
 	// TODO SET rollback machanism
 	defer sc.lock.Unlock()
@@ -81,15 +81,16 @@ func (sc *SlotCluster) Dispatch(begin uint32, end uint32, service string) {
 	enc := gob.NewEncoder(buf)
 	err := enc.Encode(sc.slots)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	// TODO STORE VERSION AND PANIC
 	_, stat, err := sc.conn.Get(zconst.SlotsRoot)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	_, err = sc.conn.Set(zconst.SlotsRoot, buf.Bytes(), stat.Version)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }

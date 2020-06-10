@@ -13,7 +13,8 @@ const (
 	YurtRoot = "/yurt"
 	// ServiceRoot is Service config root folder
 	ServiceRoot = "/service"
-
 	// SlotsRoot is a SlotCloster config root
 	SlotsRoot = "/slot"
+	// PreSlotsRoot is PreSlots config root
+	PreSlotsRoot = "/pre-slot"
 )

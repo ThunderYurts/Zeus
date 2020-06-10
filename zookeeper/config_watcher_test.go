@@ -27,11 +27,13 @@ func TestConfigWatcher(t *testing.T) {
 		watcher.Start()
 		stat, err = writer.Set("/config", []byte("gifnoc"), stat.Version)
 		So(err, ShouldBeNil)
+		time.Sleep(1 * time.Second) // Because we actionW just one time and after we get event, we will get the newest data, but it may be not the one trigger the event
 		stat, err = writer.Set("/config", []byte("dll"), stat.Version)
 		So(err, ShouldBeNil)
 		canncel()
 		wg.Wait()
 		receive := []string{}
+		close(channel)
 		for {
 			if value, ok := <-channel; ok {
 				receive = append(receive, string(value))

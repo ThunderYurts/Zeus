@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 	sync "sync"
 
 	"github.com/ThunderYurts/Zeus/zconst"
-	"github.com/ThunderYurts/Zeus/zookeeper"
 	"github.com/ThunderYurts/Zeus/zroute"
-	zscheduler "github.com/ThunderYurts/Zeus/zshceduler"
+	"github.com/ThunderYurts/Zeus/zscheduler"
 	"github.com/ThunderYurts/Zeus/zslot"
 	"github.com/samuel/go-zookeeper/zk"
 	grpc "google.golang.org/grpc"
@@ -32,11 +30,10 @@ type Server struct {
 	algo               zroute.Algo
 	hosts              *zroute.ServiceHost
 	config             *ServerConfig
-	sc                 *zslot.SlotCluster
 	serviceHostChannel chan []byte
-	serviceHostWatcher *zookeeper.ConfigWatcher
 	scheduler          zscheduler.Scheduler
 	conn               *zk.Conn
+	sc                 *zslot.SlotCluster
 }
 
 // NewServer is a help function for new Server
@@ -47,11 +44,10 @@ func NewServer(ctx context.Context, algo zroute.Algo, config *ServerConfig, sc *
 		algo:               algo,
 		hosts:              nil,
 		config:             config,
-		sc:                 sc,
 		serviceHostChannel: make(chan []byte, 100),
-		serviceHostWatcher: nil,
 		scheduler:          nil,
 		conn:               nil,
+		sc:                 sc,
 	}
 }
 
@@ -72,7 +68,7 @@ func (s *Server) Source(ctx context.Context, in *SourceRequest) (*SourceReply, e
 		return &SourceReply{Code: SourceCode_SOURCE_ERROR, Addr: ""}, err
 	}
 
-	addr, err := s.algo.Source(h, s.hosts)
+	addr, err := s.algo.Source(h, in.Action, s.hosts)
 	if err != nil {
 		fmt.Println(err.Error())
 		return &SourceReply{Code: SourceCode_SOURCE_ERROR, Addr: ""}, nil
@@ -89,29 +85,20 @@ func (s *Server) Start(sourcePort string, conn *zk.Conn, slotBegin uint32, slotE
 	if err != nil {
 		return err
 	}
-
-	segment := strconv.Itoa(int(slotBegin)) + "-" + strconv.Itoa(int(slotEnd))
-
-	serviceHostName := zconst.ServiceRoot + "/" + segment
-
-	cw := zookeeper.NewConfigWatcher(s.ctx, wg, s.serviceHostChannel, s.conn, serviceHostName)
-	s.serviceHostWatcher = &cw
-	s.serviceHostWatcher.Start()
-	sh := zroute.NewServiceHost()
+	// move configwatcher into ServiceHost
+	segChannel := make(chan zroute.Segment)
+	sh := zroute.NewServiceHost(s.ctx, wg, conn, segChannel)
 	s.hosts = &sh
-	go func() {
-		s.hosts.Sync(s.serviceHostChannel)
-	}()
+	s.hosts.Sync()
 	// TODO simple scheduler
-	scheduler, err := zscheduler.NewSimpleScheduler(s.ctx, wg, s.conn, 2, s.hosts)
+	sc := zslot.NewSlotCluster(conn)
+	s.sc = &sc
+	scheduler, err := zscheduler.NewSimpleScheduler(s.ctx, wg, s.conn, 2, s.hosts, &sc, segChannel)
 	if err != nil {
 		return err
 	}
 	s.scheduler = &scheduler
 	go s.scheduler.Listen(zconst.YurtRoot)
-
-	sc := zslot.NewSlotCluster(s.conn, segment)
-	s.sc = &sc
 
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
