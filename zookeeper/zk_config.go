@@ -8,6 +8,7 @@ type ZKServiceHost struct {
 	Secondary []string
 	SlotBegin uint32
 	SlotEnd   uint32
+	Locked    bool
 }
 
 // ZKRegister is a register response to yurt temporary node
