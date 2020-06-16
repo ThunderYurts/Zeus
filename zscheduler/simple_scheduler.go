@@ -115,7 +115,7 @@ func (psm *PreSlotsManager) PreDispatch() (uint32, uint32, string, error) {
 }
 
 // Commit will free segment
-func (psm *PreSlotsManager) Commit(begin uint32, end uint32) error {
+func (psm *PreSlotsManager) Commit(begin uint32, end uint32, serviceName string) error {
 	fmt.Printf("psm commit %v-%v\n", begin, end)
 	psm.lock.Lock()
 	defer psm.lock.Unlock()
@@ -125,6 +125,7 @@ func (psm *PreSlotsManager) Commit(begin uint32, end uint32) error {
 		if seg.Begin == begin && seg.End == end {
 			fmt.Printf("set seg %v block false\n", seg)
 			psm.segments[i].Block = false
+			psm.segments[i].ServiceName = serviceName
 			break
 		}
 	}
@@ -198,6 +199,16 @@ func randomName(n int, allowedChars ...[]rune) string {
 
 // Schedule will dispatch yurt
 func (ss *SimpleScheduler) Schedule(registerNode string) error {
+	// check whether node has been dispatched
+	preData, _, err := ss.conn.Get(registerNode)
+	if err != nil {
+		fmt.Println("err in 204")
+		return err
+	}
+	if len(preData) > 0 {
+		// has been dispatched
+		return nil
+	}
 	ss.ServiceHost.Lock.RLock()
 	fmt.Printf("schedule register node %s \n", registerNode)
 	statistic := make(map[string]int)
@@ -242,8 +253,8 @@ func (ss *SimpleScheduler) Schedule(registerNode string) error {
 		fmt.Printf("line 233 %v\n", err)
 		return err
 	}
-	fmt.Printf("dispatch segment %v-%v\n", begin, end)
-	newHosts := zookeeper.ZKServiceHost{SlotBegin: begin, SlotEnd: end, Service: newName, Primary: "", Secondary: []string{}, SyncHost: syncHost}
+	fmt.Printf("dispatch segment %v-%v syncHost: %v\n", syncHost, begin, end)
+	newHosts := zookeeper.ZKServiceHost{SlotBegin: begin, SlotEnd: end, Service: newName, Primary: "", SecondarySyncHost: "", Secondary: []string{}, SyncHost: syncHost}
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
 	err = enc.Encode(newHosts)
@@ -253,12 +264,18 @@ func (ss *SimpleScheduler) Schedule(registerNode string) error {
 	}
 	_, err = ss.conn.Create(zconst.ServiceRoot+"/"+newName, buf.Bytes(), 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
-		fmt.Printf("line 246 %v\n", err)
+		fmt.Printf("line 256 %v\n", err)
+		return err
+	}
+	_, err = ss.conn.Create(zconst.ServiceRoot+"/"+newName+zconst.YurtRoot, []byte{}, 0, zk.WorldACL(zk.PermAll))
+
+	if err != nil {
+		fmt.Printf("line 262 %v\n", err)
 		return err
 	}
 	_, stat, err := ss.conn.Get(registerNode)
 	if err != nil {
-		fmt.Printf("line 251 %v\n", err)
+		fmt.Printf("line 267 %v\n", err)
 		return err
 	}
 	regInfo := zookeeper.ZKRegister{ServiceName: newName}
@@ -267,7 +284,7 @@ func (ss *SimpleScheduler) Schedule(registerNode string) error {
 	err = enc.Encode(regInfo)
 	stat, err = ss.conn.Set(registerNode, buf.Bytes(), stat.Version)
 	if err != nil {
-		fmt.Printf("line 260 %v\n", err)
+		fmt.Printf("line 276 %v\n", err)
 		return err
 	}
 	fmt.Printf("create service %s\n", newName)
@@ -287,7 +304,7 @@ func (ss *SimpleScheduler) Listen(path string) error {
 					if !ok {
 						return
 					}
-					err := ss.psm.Commit(seg.Begin, seg.End)
+					err := ss.psm.Commit(seg.Begin, seg.End, seg.ServiceName)
 					if err != nil {
 						fmt.Println(err.Error())
 						return
@@ -328,7 +345,10 @@ func (ss *SimpleScheduler) Listen(path string) error {
 						fmt.Printf("in simple scheduler idles : %s\n", idle)
 						if data, _, err := ss.conn.Get(path + "/" + idle); err == nil && len(data) == 0 {
 							fmt.Printf("dispatch yurt %s\n", idle)
-							ss.Schedule(path + "/" + idle)
+							err = ss.Schedule(path + "/" + idle)
+							if err != nil {
+								fmt.Printf("error in 338 %s\n", err.Error())
+							}
 						}
 					}
 				}

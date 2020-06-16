@@ -42,7 +42,6 @@ func (p *Preemptive) Preemptive(data []byte) error {
 			return nil
 		}
 		time.Sleep(1 * time.Second)
-		fmt.Println(err.Error())
 		// select {
 		// case e := <-ch:
 		// 	{

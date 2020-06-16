@@ -75,5 +75,14 @@ Zeus Master 在初始化时首先需要同步 ZooKeeper ，恢复相应的 Watch
 Yurt Pool 用于两个方面，首先是在访问压力不大的情况下，能够形成资源池，以供极速调配到不同的 Service 下作为 Secondary 提升 QoS，另一方面可以接纳因为短期网络波动造成的 Yurt 脱离 Service，可以进入到 Yurt Pool 以待进一步分配。
 
 ## Dynamic Scalability
-动态扩展主要通过 Gaia 和 Zeus 进行配合实现，主要有 direct 和 indirect 两种模式。Gaia 将不断上报本地资源的情况，是 Zeus 对服务进行扩展的基础。可以直接远程调用 Gaia 直接启动新 Yurt 注册到指定的服务，也可以调用 Gaia 启动新 Yurt 进入到的 Yurt Pool 以待被调度。同时能够考虑到将同一个的 Service 的 Yurt 分配到不同的 Node 上，以避免 Node 崩溃导致整个服务直接崩溃。
+![gaia-workflow](./images/gaia-workflow.png)
 
+动态扩展主要通过 Gaia 和 Zeus 进行配合实现，主要有 direct 和 indirect 两种模式。Gaia 将不断上报本地资源的情况，是 Zeus 对服务进行扩展的基础。
+
+direct: 直接远程调用 Gaia 直接启动新 Yurt 注册到指定的服务，以定向保证性能和可靠性。
+
+indirect: 间接调用 Gaia 启动新 Yurt 进入到的 Yurt Pool 以待被调度。
+
+同时 Gaia 会提供本节点上服务的ip+port，Zeus 考虑到将同一个的 Service 的 Yurt 分配到不同的 Node 上，以避免 Node 崩溃导致整个服务直接崩溃。
+
+![yurt-distribution](./images/yurt-distribution.png)

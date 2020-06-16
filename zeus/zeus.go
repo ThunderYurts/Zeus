@@ -77,12 +77,12 @@ func (z *Zeus) initZk(zkAddr []string) error {
 		return err
 	}
 
-	err = existOrCreate(z.conn, "/zeus", []byte{})
+	err = existOrCreate(z.conn, zconst.ZeusRoot, []byte{})
 	if err != nil {
 		return err
 	}
 	segment := strconv.Itoa(int(z.config.slotBegin)) + "-" + strconv.Itoa(int(z.config.slotEnd))
-	preemptiveName := "/zeus/" + segment
+	preemptiveName := zconst.ZeusRoot + "/" + segment
 	preemptive := zookeeper.NewPreemptive(z.ctx, z.wg, z.conn, preemptiveName)
 	z.preemptive = &preemptive
 	// Zeus will block here forever

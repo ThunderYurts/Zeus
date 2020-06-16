@@ -9,6 +9,8 @@ const (
 	ActionRead = "read"
 	// TotalSlotNum is the num of all slots
 	TotalSlotNum = 11384
+	// ZeusRoot is zeus root
+	ZeusRoot = "/zeus"
 	// YurtRoot is idle YurtRoot
 	YurtRoot = "/yurt"
 	// ServiceRoot is Service config root folder
