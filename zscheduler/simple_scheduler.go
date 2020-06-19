@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	mapset "github.com/deckarep/golang-set"
 	"math/rand"
 	"sync"
 
@@ -147,38 +148,6 @@ func (psm *PreSlotsManager) Commit(begin uint32, end uint32, serviceName string)
 	return nil
 }
 
-// TODO merge two segment
-
-// SimpleScheduler is a simple algo for schedule idle yurt
-type SimpleScheduler struct {
-	ctx         context.Context
-	wg          *sync.WaitGroup
-	conn        *zk.Conn
-	minRequest  int
-	ServiceHost *zroute.ServiceHost
-	sc          *zslot.SlotCluster
-	psm         *PreSlotsManager
-	segChannel  chan zroute.Segment
-}
-
-// NewSimpleScheduler is a help function for new SimpleScheduler
-func NewSimpleScheduler(ctx context.Context, wg *sync.WaitGroup, conn *zk.Conn, minRequest int, ServiceHost *zroute.ServiceHost, sc *zslot.SlotCluster, segChannel chan zroute.Segment) (SimpleScheduler, error) {
-	psm, err := NewPreSlotsManager(conn)
-	if err != nil {
-		return SimpleScheduler{}, nil
-	}
-	return SimpleScheduler{
-		ctx:         ctx,
-		wg:          wg,
-		conn:        conn,
-		minRequest:  minRequest,
-		ServiceHost: ServiceHost,
-		sc:          sc,
-		psm:         &psm,
-		segChannel:  segChannel,
-	}, nil
-}
-
 func randomName(n int, allowedChars ...[]rune) string {
 	var defaultLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	var letters []rune
@@ -195,6 +164,41 @@ func randomName(n int, allowedChars ...[]rune) string {
 	}
 
 	return string(b)
+}
+
+// GaiaManager will return
+// TODO merge two segment
+
+// SimpleScheduler is a simple algo for schedule idle yurt
+type SimpleScheduler struct {
+	ctx              context.Context
+	wg               *sync.WaitGroup
+	conn             *zk.Conn
+	minRequest       int
+	ServiceHost      *zroute.ServiceHost
+	sc               *zslot.SlotCluster
+	psm              *PreSlotsManager
+	segChannel       chan zroute.Segment
+	YurtPool         mapset.Set
+}
+
+// NewSimpleScheduler is a help function for new SimpleScheduler
+func NewSimpleScheduler(ctx context.Context, wg *sync.WaitGroup, conn *zk.Conn, minRequest int, ServiceHost *zroute.ServiceHost, sc *zslot.SlotCluster, segChannel chan zroute.Segment) (SimpleScheduler, error) {
+	psm, err := NewPreSlotsManager(conn)
+	if err != nil {
+		return SimpleScheduler{}, nil
+	}
+	return SimpleScheduler{
+		ctx:              ctx,
+		wg:               wg,
+		conn:             conn,
+		minRequest:       minRequest,
+		ServiceHost:      ServiceHost,
+		sc:               sc,
+		psm:              &psm,
+		segChannel:       segChannel,
+		YurtPool: mapset.NewSet(),
+	}, nil
 }
 
 // Schedule will dispatch yurt
@@ -234,6 +238,7 @@ func (ss *SimpleScheduler) Schedule(registerNode string) error {
 				return err
 			}
 			stat, err = ss.conn.Set(registerNode, buf.Bytes(), stat.Version)
+
 			if err != nil {
 				fmt.Printf("in scheduler loop3 error : %v", err)
 				return err
@@ -291,7 +296,7 @@ func (ss *SimpleScheduler) Schedule(registerNode string) error {
 	return nil
 }
 
-// Listen will start a routine to ChildrenW
+// Listen will start a routine to ChildrenW now we just let idle into YurtPool
 func (ss *SimpleScheduler) Listen(path string) error {
 	idles, _, childChan, err := ss.conn.ChildrenW(path)
 	fmt.Printf("listen %s start\n", path)
@@ -322,9 +327,15 @@ func (ss *SimpleScheduler) Listen(path string) error {
 		fmt.Printf("in scheduler listen1 error : %v", err)
 		return err
 	}
+	newIdles := mapset.NewSet()
 	for _, idle := range idles {
-		ss.Schedule(path + "/" + idle)
+		if data, _, err := ss.conn.Get(path + "/" + idle); err == nil && len(data) == 0 {
+			fmt.Printf("dispatch yurt %s\n", idle)
+			newIdles.Add(idle)
+		}
 	}
+	ss.YurtPool = newIdles
+
 	ss.wg.Add(1)
 	defer ss.wg.Done()
 	for {
@@ -341,19 +352,25 @@ func (ss *SimpleScheduler) Listen(path string) error {
 					if err != nil {
 						fmt.Printf("in scheduler listen2 error : %v", err)
 					}
+					newIdles := mapset.NewSet()
+
 					for _, idle := range idles {
 						fmt.Printf("in simple scheduler idles : %s\n", idle)
 						if data, _, err := ss.conn.Get(path + "/" + idle); err == nil && len(data) == 0 {
-							fmt.Printf("dispatch yurt %s\n", idle)
-							err = ss.Schedule(path + "/" + idle)
-							if err != nil {
-								fmt.Printf("error in 338 %s\n", err.Error())
-							}
+							newIdles.Add(idle)
 						}
 					}
+					ss.YurtPool = newIdles
 				}
 			}
 		}
 	}
+}
 
+func (ss *SimpleScheduler) GetIdles() []interface{} {
+	return ss.YurtPool.ToSlice()
+}
+
+func (ss *SimpleScheduler) GetIdle() interface{} {
+	return ss.YurtPool.Pop()
 }

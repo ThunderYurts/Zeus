@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	sync "sync"
+	"time"
 
 	"github.com/ThunderYurts/Zeus/zconst"
 	"github.com/ThunderYurts/Zeus/zroute"
@@ -34,6 +35,7 @@ type Server struct {
 	scheduler          zscheduler.Scheduler
 	conn               *zk.Conn
 	sc                 *zslot.SlotCluster
+	gaiaManager        *zroute.GaiaManager
 }
 
 // NewServer is a help function for new Server
@@ -48,6 +50,7 @@ func NewServer(ctx context.Context, algo zroute.Algo, config *ServerConfig, sc *
 		scheduler:          nil,
 		conn:               nil,
 		sc:                 sc,
+		gaiaManager:        nil,
 	}
 }
 
@@ -85,6 +88,11 @@ func (s *Server) Start(sourcePort string, conn *zk.Conn, slotBegin uint32, slotE
 	if err != nil {
 		return err
 	}
+	// add gaiaManager
+	gm := zroute.NewGaiaManager(s.ctx, conn)
+	s.gaiaManager = &gm
+	s.gaiaManager.Collect()
+
 	// move configwatcher into ServiceHost
 	segChannel := make(chan zroute.Segment)
 	sh := zroute.NewServiceHost(s.ctx, wg, conn, segChannel)
@@ -93,12 +101,51 @@ func (s *Server) Start(sourcePort string, conn *zk.Conn, slotBegin uint32, slotE
 	// TODO simple scheduler
 	sc := zslot.NewSlotCluster(conn)
 	s.sc = &sc
+
 	scheduler, err := zscheduler.NewSimpleScheduler(s.ctx, wg, s.conn, 2, s.hosts, &sc, segChannel)
 	if err != nil {
 		return err
 	}
 	s.scheduler = &scheduler
 	go s.scheduler.Listen(zconst.YurtRoot)
+
+	go func() {
+		// here we will sync Algo data about other data
+		for {
+			select {
+			case <-s.ctx.Done() : {
+				return
+			}
+			default:
+				{
+					fmt.Printf("idles len %v\n", len(s.scheduler.GetIdles()))
+					if len(s.scheduler.GetIdles()) > zconst.YurtPoolMaxSize {
+						pre := s.scheduler.GetIdle().(string)
+						err := s.scheduler.Schedule(pre)
+						if err != nil {
+							panic(err)
+						}
+					}
+
+					if len(s.scheduler.GetIdles()) < zconst.YurtPoolMinSize {
+						err = s.gaiaManager.Create("", "")
+						fmt.Println("create a new idle")
+						if err != nil {
+							if err == zroute.NOT_ENOUGH_GAIA {
+								fmt.Println(err.Error())
+							} else {
+								panic(err)
+							}
+
+						}
+					}
+
+					fmt.Printf("just print gaiamanager data %v\n", s.gaiaManager.Monitors)
+					time.Sleep(2 * time.Second)
+				}
+			}
+		}
+	}()
 
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {

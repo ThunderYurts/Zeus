@@ -19,4 +19,11 @@ const (
 	SlotsRoot = "/slot"
 	// PreSlotsRoot is PreSlots config root
 	PreSlotsRoot = "/pre-slot"
+	// GaiaRoot will store monitor data
+	GaiaRoot = "/gaia"
+	// Max Yurt Pool Size
+	YurtPoolMaxSize = 5
+	// Min Yurt Pool Size
+	YurtPoolMinSize = 2
+
 )

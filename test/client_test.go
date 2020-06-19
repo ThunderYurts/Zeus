@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"github.com/ThunderYurts/Zeus/action"
 	"github.com/ThunderYurts/Zeus/zconst"
 	"github.com/ThunderYurts/Zeus/zsource"
@@ -28,6 +29,7 @@ func TestCluster(t *testing.T) {
 			connAction, err := grpc.Dial(reply.Addr, grpc.WithInsecure())
 			convey.So(err, convey.ShouldBeNil)
 			yurtClient := action.NewActionClient(connAction)
+			fmt.Println(reply.Addr)
 			putReply, err := yurtClient.Put(ctx, &action.PutRequest{Key: "animal", Value: animals[i]})
 			convey.So(err, convey.ShouldBeNil)
 			convey.So(putReply, convey.ShouldNotBeNil)
