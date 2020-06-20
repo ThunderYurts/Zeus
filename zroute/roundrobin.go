@@ -2,9 +2,10 @@ package zroute
 
 import (
 	"errors"
-
 	"github.com/ThunderYurts/Zeus/zconst"
 )
+
+var SERVICE_NOT_FOUND = errors.New("service not found")
 
 // RoundRobin is a basic algo for load balance
 type RoundRobin struct {
@@ -26,7 +27,7 @@ func (r *RoundRobin) Source(service string, action string, hosts *ServiceHost) (
 		{
 			addr, exist := hosts.PrimaryHosts[service]
 			if !exist {
-				return "", errors.New("service not found")
+				return "", SERVICE_NOT_FOUND
 			}
 			return addr, nil
 
@@ -35,7 +36,7 @@ func (r *RoundRobin) Source(service string, action string, hosts *ServiceHost) (
 		{
 			addrs, exist := hosts.Hosts[service]
 			if !exist {
-				return "", errors.New("service not found")
+				return "", SERVICE_NOT_FOUND
 			}
 			l := len(addrs)
 			if l == 0 {

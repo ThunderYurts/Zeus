@@ -25,5 +25,7 @@ const (
 	YurtPoolMaxSize = 5
 	// Min Yurt Pool Size
 	YurtPoolMinSize = 2
+	// Yurt Request Limit
+	YurtRequestLimit = 10
 
 )

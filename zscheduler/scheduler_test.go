@@ -44,7 +44,9 @@ func testScheduler(t *testing.T) {
 		_, err = conn.Create("/yurt/idle0", []byte{}, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 		So(err, ShouldBeNil)
 		sc := zslot.NewSlotCluster(conn)
-		ss, err := NewSimpleScheduler(ctx, wg, conn, 2, &ServiceHost, &sc, segChannel)
+		psm, err := NewPreSlotsManager(conn)
+		So(err, ShouldBeNil)
+		ss, err := NewSimpleScheduler(ctx, wg, conn, 2, &ServiceHost, &sc, segChannel, &psm)
 		s = &ss
 		So(err, ShouldBeNil)
 		go func() {
@@ -100,7 +102,9 @@ func testSchedulerAndWatcher(t *testing.T) {
 		sh.Sync()
 		var s Scheduler
 		sc := zslot.NewSlotCluster(conn)
-		ss, err := NewSimpleScheduler(ctx, wg, conn, 2, &sh, &sc, segChannel)
+		psm, err := NewPreSlotsManager(conn)
+		So(err, ShouldBeNil)
+		ss, err := NewSimpleScheduler(ctx, wg, conn, 2, &sh, &sc, segChannel, &psm)
 		s = &ss
 		go func() {
 			s.Listen(zconst.YurtRoot)
@@ -181,7 +185,9 @@ func testCreateNewService(t *testing.T) {
 		sh.Sync()
 		var s Scheduler
 		sc := zslot.NewSlotCluster(conn)
-		ss, err := NewSimpleScheduler(ctx, wg, conn, 1, &sh, &sc, segChannel)
+		psm ,err := NewPreSlotsManager(conn)
+		So(err, ShouldBeNil)
+		ss, err := NewSimpleScheduler(ctx, wg, conn, 1, &sh, &sc, segChannel, &psm)
 		s = &ss
 		go func() {
 			s.Listen(zconst.YurtRoot)
