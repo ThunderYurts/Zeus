@@ -71,7 +71,7 @@ func existOrCreate(conn *zk.Conn, path string, data []byte) error {
 }
 
 func (z *Zeus) initZk(zkAddr []string) error {
-	conn, _, err := zk.Connect(zkAddr, 1*time.Second)
+	conn, _, err := zk.Connect(zkAddr, 40*time.Second)
 	z.conn = conn
 	if err != nil {
 		return err

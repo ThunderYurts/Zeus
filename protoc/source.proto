@@ -5,12 +5,19 @@ package source;
 
 service Source {
     rpc Source(SourceRequest) returns (SourceReply) {}
+    rpc ReBalance(ReBalanceRequest) returns (ReBalanceReply) {}
 }
 
 enum SourceCode {
     SOURCE_SUCCESS = 0;
     SOURCE_LOCK = 1;
     SOURCE_ERROR = 2;
+}
+
+enum ReBalanceCode {
+    REBALANCE_SUCCESS = 0;
+    REBALANCE_LOCK = 1;
+    REBALANCE_ERROR = 2;
 }
 
 message SourceRequest {
@@ -21,4 +28,14 @@ message SourceRequest {
 message SourceReply {
     SourceCode Code = 1;
     string Addr = 2;
+}
+
+message ReBalanceRequest {
+}
+
+message ReBalanceReply {
+    ReBalanceCode Code = 1;
+    uint32 Begin = 2;
+    uint32 End = 3;
+    string Name = 4;
 }

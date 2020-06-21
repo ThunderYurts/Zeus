@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.24.0
 // 	protoc        v3.5.1
-// source: protoc/source.proto
+// source: source.proto
 
 package zsource
 
@@ -62,11 +62,11 @@ func (x SourceCode) String() string {
 }
 
 func (SourceCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_protoc_source_proto_enumTypes[0].Descriptor()
+	return file_source_proto_enumTypes[0].Descriptor()
 }
 
 func (SourceCode) Type() protoreflect.EnumType {
-	return &file_protoc_source_proto_enumTypes[0]
+	return &file_source_proto_enumTypes[0]
 }
 
 func (x SourceCode) Number() protoreflect.EnumNumber {
@@ -75,7 +75,56 @@ func (x SourceCode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SourceCode.Descriptor instead.
 func (SourceCode) EnumDescriptor() ([]byte, []int) {
-	return file_protoc_source_proto_rawDescGZIP(), []int{0}
+	return file_source_proto_rawDescGZIP(), []int{0}
+}
+
+type ReBalanceCode int32
+
+const (
+	ReBalanceCode_REBALANCE_SUCCESS ReBalanceCode = 0
+	ReBalanceCode_REBALANCE_LOCK    ReBalanceCode = 1
+	ReBalanceCode_REBALANCE_ERROR   ReBalanceCode = 2
+)
+
+// Enum value maps for ReBalanceCode.
+var (
+	ReBalanceCode_name = map[int32]string{
+		0: "REBALANCE_SUCCESS",
+		1: "REBALANCE_LOCK",
+		2: "REBALANCE_ERROR",
+	}
+	ReBalanceCode_value = map[string]int32{
+		"REBALANCE_SUCCESS": 0,
+		"REBALANCE_LOCK":    1,
+		"REBALANCE_ERROR":   2,
+	}
+)
+
+func (x ReBalanceCode) Enum() *ReBalanceCode {
+	p := new(ReBalanceCode)
+	*p = x
+	return p
+}
+
+func (x ReBalanceCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ReBalanceCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_source_proto_enumTypes[1].Descriptor()
+}
+
+func (ReBalanceCode) Type() protoreflect.EnumType {
+	return &file_source_proto_enumTypes[1]
+}
+
+func (x ReBalanceCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ReBalanceCode.Descriptor instead.
+func (ReBalanceCode) EnumDescriptor() ([]byte, []int) {
+	return file_source_proto_rawDescGZIP(), []int{1}
 }
 
 type SourceRequest struct {
@@ -90,7 +139,7 @@ type SourceRequest struct {
 func (x *SourceRequest) Reset() {
 	*x = SourceRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protoc_source_proto_msgTypes[0]
+		mi := &file_source_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -103,7 +152,7 @@ func (x *SourceRequest) String() string {
 func (*SourceRequest) ProtoMessage() {}
 
 func (x *SourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protoc_source_proto_msgTypes[0]
+	mi := &file_source_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -116,7 +165,7 @@ func (x *SourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceRequest.ProtoReflect.Descriptor instead.
 func (*SourceRequest) Descriptor() ([]byte, []int) {
-	return file_protoc_source_proto_rawDescGZIP(), []int{0}
+	return file_source_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SourceRequest) GetKey() string {
@@ -145,7 +194,7 @@ type SourceReply struct {
 func (x *SourceReply) Reset() {
 	*x = SourceReply{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protoc_source_proto_msgTypes[1]
+		mi := &file_source_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -158,7 +207,7 @@ func (x *SourceReply) String() string {
 func (*SourceReply) ProtoMessage() {}
 
 func (x *SourceReply) ProtoReflect() protoreflect.Message {
-	mi := &file_protoc_source_proto_msgTypes[1]
+	mi := &file_source_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -171,7 +220,7 @@ func (x *SourceReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceReply.ProtoReflect.Descriptor instead.
 func (*SourceReply) Descriptor() ([]byte, []int) {
-	return file_protoc_source_proto_rawDescGZIP(), []int{1}
+	return file_source_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SourceReply) GetCode() SourceCode {
@@ -188,68 +237,201 @@ func (x *SourceReply) GetAddr() string {
 	return ""
 }
 
-var File_protoc_source_proto protoreflect.FileDescriptor
+type ReBalanceRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
 
-var file_protoc_source_proto_rawDesc = []byte{
-	0x0a, 0x13, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x2f, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0x39, 0x0a,
-	0x0d, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10,
-	0x0a, 0x03, 0x4b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x4b, 0x65, 0x79,
-	0x12, 0x16, 0x0a, 0x06, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x06, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x49, 0x0a, 0x0b, 0x53, 0x6f, 0x75, 0x72,
-	0x63, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x26, 0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x12, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x53,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x43, 0x6f, 0x64, 0x65, 0x52, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x12,
-	0x12, 0x0a, 0x04, 0x41, 0x64, 0x64, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x41,
-	0x64, 0x64, 0x72, 0x2a, 0x43, 0x0a, 0x0a, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x43, 0x6f, 0x64,
-	0x65, 0x12, 0x12, 0x0a, 0x0e, 0x53, 0x4f, 0x55, 0x52, 0x43, 0x45, 0x5f, 0x53, 0x55, 0x43, 0x43,
-	0x45, 0x53, 0x53, 0x10, 0x00, 0x12, 0x0f, 0x0a, 0x0b, 0x53, 0x4f, 0x55, 0x52, 0x43, 0x45, 0x5f,
-	0x4c, 0x4f, 0x43, 0x4b, 0x10, 0x01, 0x12, 0x10, 0x0a, 0x0c, 0x53, 0x4f, 0x55, 0x52, 0x43, 0x45,
-	0x5f, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x02, 0x32, 0x40, 0x0a, 0x06, 0x53, 0x6f, 0x75, 0x72,
-	0x63, 0x65, 0x12, 0x36, 0x0a, 0x06, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x15, 0x2e, 0x73,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x13, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x53, 0x6f, 0x75,
-	0x72, 0x63, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x42, 0x0a, 0x5a, 0x08, 0x2e, 0x3b,
-	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+func (x *ReBalanceRequest) Reset() {
+	*x = ReBalanceRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_source_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReBalanceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReBalanceRequest) ProtoMessage() {}
+
+func (x *ReBalanceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_source_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReBalanceRequest.ProtoReflect.Descriptor instead.
+func (*ReBalanceRequest) Descriptor() ([]byte, []int) {
+	return file_source_proto_rawDescGZIP(), []int{2}
+}
+
+type ReBalanceReply struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Code  ReBalanceCode `protobuf:"varint,1,opt,name=Code,proto3,enum=source.ReBalanceCode" json:"Code,omitempty"`
+	Begin uint32        `protobuf:"varint,2,opt,name=Begin,proto3" json:"Begin,omitempty"`
+	End   uint32        `protobuf:"varint,3,opt,name=End,proto3" json:"End,omitempty"`
+	Name  string        `protobuf:"bytes,4,opt,name=Name,proto3" json:"Name,omitempty"`
+}
+
+func (x *ReBalanceReply) Reset() {
+	*x = ReBalanceReply{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_source_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReBalanceReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReBalanceReply) ProtoMessage() {}
+
+func (x *ReBalanceReply) ProtoReflect() protoreflect.Message {
+	mi := &file_source_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReBalanceReply.ProtoReflect.Descriptor instead.
+func (*ReBalanceReply) Descriptor() ([]byte, []int) {
+	return file_source_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ReBalanceReply) GetCode() ReBalanceCode {
+	if x != nil {
+		return x.Code
+	}
+	return ReBalanceCode_REBALANCE_SUCCESS
+}
+
+func (x *ReBalanceReply) GetBegin() uint32 {
+	if x != nil {
+		return x.Begin
+	}
+	return 0
+}
+
+func (x *ReBalanceReply) GetEnd() uint32 {
+	if x != nil {
+		return x.End
+	}
+	return 0
+}
+
+func (x *ReBalanceReply) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+var File_source_proto protoreflect.FileDescriptor
+
+var file_source_proto_rawDesc = []byte{
+	0x0a, 0x0c, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x06,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0x39, 0x0a, 0x0d, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x4b, 0x65, 0x79, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x4b, 0x65, 0x79, 0x12, 0x16, 0x0a, 0x06, 0x41, 0x63, 0x74,
+	0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x41, 0x63, 0x74, 0x69, 0x6f,
+	0x6e, 0x22, 0x49, 0x0a, 0x0b, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79,
+	0x12, 0x26, 0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x12,
+	0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x43, 0x6f,
+	0x64, 0x65, 0x52, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x41, 0x64, 0x64, 0x72,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x41, 0x64, 0x64, 0x72, 0x22, 0x12, 0x0a, 0x10,
+	0x52, 0x65, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x22, 0x77, 0x0a, 0x0e, 0x52, 0x65, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x70,
+	0x6c, 0x79, 0x12, 0x29, 0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e,
+	0x32, 0x15, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x65, 0x42, 0x61, 0x6c, 0x61,
+	0x6e, 0x63, 0x65, 0x43, 0x6f, 0x64, 0x65, 0x52, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x14, 0x0a,
+	0x05, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x42, 0x65,
+	0x67, 0x69, 0x6e, 0x12, 0x10, 0x0a, 0x03, 0x45, 0x6e, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d,
+	0x52, 0x03, 0x45, 0x6e, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x04, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x2a, 0x43, 0x0a, 0x0a, 0x53, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x12, 0x0a, 0x0e, 0x53, 0x4f, 0x55, 0x52, 0x43,
+	0x45, 0x5f, 0x53, 0x55, 0x43, 0x43, 0x45, 0x53, 0x53, 0x10, 0x00, 0x12, 0x0f, 0x0a, 0x0b, 0x53,
+	0x4f, 0x55, 0x52, 0x43, 0x45, 0x5f, 0x4c, 0x4f, 0x43, 0x4b, 0x10, 0x01, 0x12, 0x10, 0x0a, 0x0c,
+	0x53, 0x4f, 0x55, 0x52, 0x43, 0x45, 0x5f, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x02, 0x2a, 0x4f,
+	0x0a, 0x0d, 0x52, 0x65, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x43, 0x6f, 0x64, 0x65, 0x12,
+	0x15, 0x0a, 0x11, 0x52, 0x45, 0x42, 0x41, 0x4c, 0x41, 0x4e, 0x43, 0x45, 0x5f, 0x53, 0x55, 0x43,
+	0x43, 0x45, 0x53, 0x53, 0x10, 0x00, 0x12, 0x12, 0x0a, 0x0e, 0x52, 0x45, 0x42, 0x41, 0x4c, 0x41,
+	0x4e, 0x43, 0x45, 0x5f, 0x4c, 0x4f, 0x43, 0x4b, 0x10, 0x01, 0x12, 0x13, 0x0a, 0x0f, 0x52, 0x45,
+	0x42, 0x41, 0x4c, 0x41, 0x4e, 0x43, 0x45, 0x5f, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x02, 0x32,
+	0x81, 0x01, 0x0a, 0x06, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x36, 0x0a, 0x06, 0x53, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x12, 0x15, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x53, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x13, 0x2e, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79,
+	0x22, 0x00, 0x12, 0x3f, 0x0a, 0x09, 0x52, 0x65, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x12,
+	0x18, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x65, 0x42, 0x61, 0x6c, 0x61, 0x6e,
+	0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x73, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x2e, 0x52, 0x65, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x70, 0x6c,
+	0x79, 0x22, 0x00, 0x42, 0x0a, 0x5a, 0x08, 0x2e, 0x3b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
-	file_protoc_source_proto_rawDescOnce sync.Once
-	file_protoc_source_proto_rawDescData = file_protoc_source_proto_rawDesc
+	file_source_proto_rawDescOnce sync.Once
+	file_source_proto_rawDescData = file_source_proto_rawDesc
 )
 
-func file_protoc_source_proto_rawDescGZIP() []byte {
-	file_protoc_source_proto_rawDescOnce.Do(func() {
-		file_protoc_source_proto_rawDescData = protoimpl.X.CompressGZIP(file_protoc_source_proto_rawDescData)
+func file_source_proto_rawDescGZIP() []byte {
+	file_source_proto_rawDescOnce.Do(func() {
+		file_source_proto_rawDescData = protoimpl.X.CompressGZIP(file_source_proto_rawDescData)
 	})
-	return file_protoc_source_proto_rawDescData
+	return file_source_proto_rawDescData
 }
 
-var file_protoc_source_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_protoc_source_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_protoc_source_proto_goTypes = []interface{}{
-	(SourceCode)(0),       // 0: source.SourceCode
-	(*SourceRequest)(nil), // 1: source.SourceRequest
-	(*SourceReply)(nil),   // 2: source.SourceReply
+var file_source_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_source_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_source_proto_goTypes = []interface{}{
+	(SourceCode)(0),          // 0: source.SourceCode
+	(ReBalanceCode)(0),       // 1: source.ReBalanceCode
+	(*SourceRequest)(nil),    // 2: source.SourceRequest
+	(*SourceReply)(nil),      // 3: source.SourceReply
+	(*ReBalanceRequest)(nil), // 4: source.ReBalanceRequest
+	(*ReBalanceReply)(nil),   // 5: source.ReBalanceReply
 }
-var file_protoc_source_proto_depIdxs = []int32{
+var file_source_proto_depIdxs = []int32{
 	0, // 0: source.SourceReply.Code:type_name -> source.SourceCode
-	1, // 1: source.Source.Source:input_type -> source.SourceRequest
-	2, // 2: source.Source.Source:output_type -> source.SourceReply
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	1, // 1: source.ReBalanceReply.Code:type_name -> source.ReBalanceCode
+	2, // 2: source.Source.Source:input_type -> source.SourceRequest
+	4, // 3: source.Source.ReBalance:input_type -> source.ReBalanceRequest
+	3, // 4: source.Source.Source:output_type -> source.SourceReply
+	5, // 5: source.Source.ReBalance:output_type -> source.ReBalanceReply
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_protoc_source_proto_init() }
-func file_protoc_source_proto_init() {
-	if File_protoc_source_proto != nil {
+func init() { file_source_proto_init() }
+func file_source_proto_init() {
+	if File_source_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_protoc_source_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_source_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SourceRequest); i {
 			case 0:
 				return &v.state
@@ -261,8 +443,32 @@ func file_protoc_source_proto_init() {
 				return nil
 			}
 		}
-		file_protoc_source_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_source_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SourceReply); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_source_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReBalanceRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_source_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReBalanceReply); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -278,21 +484,21 @@ func file_protoc_source_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_protoc_source_proto_rawDesc,
-			NumEnums:      1,
-			NumMessages:   2,
+			RawDescriptor: file_source_proto_rawDesc,
+			NumEnums:      2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_protoc_source_proto_goTypes,
-		DependencyIndexes: file_protoc_source_proto_depIdxs,
-		EnumInfos:         file_protoc_source_proto_enumTypes,
-		MessageInfos:      file_protoc_source_proto_msgTypes,
+		GoTypes:           file_source_proto_goTypes,
+		DependencyIndexes: file_source_proto_depIdxs,
+		EnumInfos:         file_source_proto_enumTypes,
+		MessageInfos:      file_source_proto_msgTypes,
 	}.Build()
-	File_protoc_source_proto = out.File
-	file_protoc_source_proto_rawDesc = nil
-	file_protoc_source_proto_goTypes = nil
-	file_protoc_source_proto_depIdxs = nil
+	File_source_proto = out.File
+	file_source_proto_rawDesc = nil
+	file_source_proto_goTypes = nil
+	file_source_proto_depIdxs = nil
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -308,6 +514,7 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type SourceClient interface {
 	Source(ctx context.Context, in *SourceRequest, opts ...grpc.CallOption) (*SourceReply, error)
+	ReBalance(ctx context.Context, in *ReBalanceRequest, opts ...grpc.CallOption) (*ReBalanceReply, error)
 }
 
 type sourceClient struct {
@@ -327,9 +534,19 @@ func (c *sourceClient) Source(ctx context.Context, in *SourceRequest, opts ...gr
 	return out, nil
 }
 
+func (c *sourceClient) ReBalance(ctx context.Context, in *ReBalanceRequest, opts ...grpc.CallOption) (*ReBalanceReply, error) {
+	out := new(ReBalanceReply)
+	err := c.cc.Invoke(ctx, "/source.Source/ReBalance", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SourceServer is the server API for Source service.
 type SourceServer interface {
 	Source(context.Context, *SourceRequest) (*SourceReply, error)
+	ReBalance(context.Context, *ReBalanceRequest) (*ReBalanceReply, error)
 }
 
 // UnimplementedSourceServer can be embedded to have forward compatible implementations.
@@ -338,6 +555,9 @@ type UnimplementedSourceServer struct {
 
 func (*UnimplementedSourceServer) Source(context.Context, *SourceRequest) (*SourceReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Source not implemented")
+}
+func (*UnimplementedSourceServer) ReBalance(context.Context, *ReBalanceRequest) (*ReBalanceReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReBalance not implemented")
 }
 
 func RegisterSourceServer(s *grpc.Server, srv SourceServer) {
@@ -362,6 +582,24 @@ func _Source_Source_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Source_ReBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReBalanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SourceServer).ReBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/source.Source/ReBalance",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SourceServer).ReBalance(ctx, req.(*ReBalanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Source_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "source.Source",
 	HandlerType: (*SourceServer)(nil),
@@ -370,7 +608,11 @@ var _Source_serviceDesc = grpc.ServiceDesc{
 			MethodName: "Source",
 			Handler:    _Source_Source_Handler,
 		},
+		{
+			MethodName: "ReBalance",
+			Handler:    _Source_ReBalance_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "protoc/source.proto",
+	Metadata: "source.proto",
 }

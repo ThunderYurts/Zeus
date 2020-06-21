@@ -30,7 +30,7 @@ func NewPreSlotsManager(conn *zk.Conn) (PreSlotsManager, error) {
 		return PreSlotsManager{}, err
 	}
 	if !exist {
-		segs := []zroute.Segment{}
+		var segs []zroute.Segment
 		buf := new(bytes.Buffer)
 		enc := gob.NewEncoder(buf)
 		err := enc.Encode(segs)
@@ -52,7 +52,7 @@ func NewPreSlotsManager(conn *zk.Conn) (PreSlotsManager, error) {
 		return PreSlotsManager{}, err
 	}
 	dec := gob.NewDecoder(bytes.NewBuffer(data))
-	segs := []zroute.Segment{}
+	var segs []zroute.Segment
 	err = dec.Decode(&segs)
 	if err != nil {
 		return PreSlotsManager{}, err
@@ -120,8 +120,8 @@ func (psm *PreSlotsManager) Commit(begin uint32, end uint32, serviceName string)
 	psm.lock.Lock()
 	defer psm.lock.Unlock()
 	for i, seg := range psm.segments {
-		fmt.Printf("begin: %v %v  == %v\n", begin, seg.Begin, begin == seg.Begin)
-		fmt.Printf("begin: %v %v  == %v\n", end, seg.End, end == seg.End)
+		//fmt.Printf("begin: %v %v  == %v\n", begin, seg.Begin, begin == seg.Begin)
+		//fmt.Printf("begin: %v %v  == %v\n", end, seg.End, end == seg.End)
 		if seg.Begin == begin && seg.End == end {
 			fmt.Printf("set seg %v block false\n", seg)
 			psm.segments[i].Block = false

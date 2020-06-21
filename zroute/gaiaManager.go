@@ -11,7 +11,6 @@ import (
 	"github.com/ThunderYurts/Zeus/zookeeper"
 	"github.com/samuel/go-zookeeper/zk"
 	"google.golang.org/grpc"
-	"math/rand"
 	"reflect"
 	"sync"
 	"time"
@@ -80,23 +79,34 @@ func (co *GaiaManager) Collect() {
 					co.mu.Lock()
 					co.Monitors = mon
 					co.mu.Unlock()
-					time.Sleep(2 * time.Second)
+					time.Sleep(1 * time.Second)
 				}
 			}
 		}
 	}()
 }
 
+func score(CPU float64, Memory float64) float64 {
+	// STRANGE MATH FUNCTION
+	return 100.0 / CPU + 100.0 / (Memory * Memory)
+}
+
 func (co *GaiaManager) Create(addr string, serviceName string) error {
 	if addr == "" {
-		// random a gaia policy
+		// TODO see the CPU and memory usage
 		keys := reflect.ValueOf(co.Monitors).MapKeys()
 		if len(keys) == 0 {
 			return NOT_ENOUGH_GAIA
 		}
-		key := keys[rand.Intn(len(keys))].Interface()
-		node := co.Monitors[key.(string)]
-		addr = node.CreateAddr
+		minScore := float64(0.0)
+		minKey := ""
+		for key, value := range co.Monitors {
+			s := score(value.CPU, value.Memory)
+			if s > minScore {
+				minKey = key
+			}
+		}
+		addr = co.Monitors[minKey].CreateAddr
 	}
 	createConn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {

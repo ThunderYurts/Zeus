@@ -41,6 +41,7 @@ type Server struct {
 	sc                 *zslot.SlotCluster
 	gaiaManager        *zroute.GaiaManager
 	loadBalanceChannel chan string
+	statisticChannel   chan string
 	statistic          map[string]int
 	psm                *zscheduler.PreSlotsManager
 }
@@ -59,6 +60,7 @@ func NewServer(ctx context.Context, algo zroute.Algo, config *ServerConfig, sc *
 		sc:                 sc,
 		gaiaManager:        nil,
 		loadBalanceChannel: make(chan string, 20),
+		statisticChannel:   make(chan string, 20),
 		statistic:          make(map[string]int),
 		psm:                nil,
 	}
@@ -81,14 +83,14 @@ func randomName(n int, allowedChars ...[]rune) string {
 	return string(b)
 }
 
-func createService(conn *zk.Conn, psm *zscheduler.PreSlotsManager) (string, error) {
+func createService(conn *zk.Conn, psm *zscheduler.PreSlotsManager) (uint32, uint32, string, error) {
 	newName := randomName(10)
 	//TODO slot split
 
 	begin, end, syncHost, err := psm.PreDispatch()
 	if err != nil {
 		fmt.Printf("line 233 %v\n", err)
-		return "", err
+		return 0, 0, "", err
 	}
 	fmt.Printf("dispatch segment %v-%v syncHost: %v\n", syncHost, begin, end)
 	newHosts := zookeeper.ZKServiceHost{SlotBegin: begin, SlotEnd: end, Service: newName, Primary: "", SecondarySyncHost: "", Secondary: []string{}, SyncHost: syncHost}
@@ -97,20 +99,20 @@ func createService(conn *zk.Conn, psm *zscheduler.PreSlotsManager) (string, erro
 	err = enc.Encode(newHosts)
 	if err != nil {
 		fmt.Printf("line 241 %v\n", err)
-		return "", err
+		return 0, 0, "", err
 	}
 	_, err = conn.Create(zconst.ServiceRoot+"/"+newName, buf.Bytes(), 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		fmt.Printf("line 256 %v\n", err)
-		return "", err
+		return 0, 0, "", err
 	}
 	_, err = conn.Create(zconst.ServiceRoot+"/"+newName+zconst.YurtRoot, []byte{}, 0, zk.WorldACL(zk.PermAll))
 
 	if err != nil {
 		fmt.Printf("line 262 %v\n", err)
-		return "", err
+		return 0, 0, "", err
 	}
-	return newName, nil
+	return begin, end, newName, nil
 }
 
 // Source return service addr by key
@@ -125,21 +127,7 @@ func (s *Server) Source(ctx context.Context, in *SourceRequest) (*SourceReply, e
 
 	h, err := s.sc.Hash(in.Key)
 	// TODO statistic I do not care race
-	if h == "" {
-		serviceName, err := createService(s.conn, s.psm)
-		if err != nil {
-			panic(err)
-		}
-		s.loadBalanceChannel <- serviceName
-	} else if _, exist := s.statistic[h]; exist {
-		s.statistic[h] = s.statistic[h] + 1
-	} else {
-		s.statistic[h] = 1;
-	}
-
-	if s.statistic[h] > zconst.YurtPoolMaxSize*len(s.hosts.Hosts[h]) {
-		s.loadBalanceChannel <- h
-	}
+	s.statisticChannel <- h
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -152,6 +140,18 @@ func (s *Server) Source(ctx context.Context, in *SourceRequest) (*SourceReply, e
 		return &SourceReply{Code: SourceCode_SOURCE_ERROR, Addr: ""}, nil
 	}
 	return &SourceReply{Code: SourceCode_SOURCE_SUCCESS, Addr: addr}, nil
+}
+
+// Source return service addr by key
+func (s *Server) ReBalance(ctx context.Context, in *ReBalanceRequest) (*ReBalanceReply, error) {
+	begin, end, serviceName, err := createService(s.conn, s.psm)
+	if err != nil {
+		return &ReBalanceReply{Code: ReBalanceCode_REBALANCE_ERROR}, err
+	}
+
+	s.loadBalanceChannel <- serviceName
+
+	return &ReBalanceReply{Code:ReBalanceCode_REBALANCE_SUCCESS, Begin: begin, End: end, Name: serviceName}, nil
 }
 
 // Start server
@@ -187,7 +187,7 @@ func (s *Server) Start(sourcePort string, conn *zk.Conn, slotBegin uint32, slotE
 	}
 	s.scheduler = &scheduler
 	go s.scheduler.Listen(zconst.YurtRoot)
-
+	ticker := time.NewTicker(10 * time.Second)
 	go func() {
 		// here we will sync Algo data about other data
 		for {
@@ -201,13 +201,37 @@ func (s *Server) Start(sourcePort string, conn *zk.Conn, slotBegin uint32, slotE
 					fmt.Println("for loadBalance we will dispatch yurt")
 					pre := s.scheduler.GetIdle()
 					if pre != nil {
-						fmt.Printf("pre name %s\n",pre.(string))
+						fmt.Printf("pre name %s\n", pre.(string))
 						err = s.scheduler.Schedule(pre.(string), serviceName)
 
 						if err != nil {
-							panic(err)
+							fmt.Printf("196:%v\n", err.Error())
 						}
 					}
+				}
+			case h := <-s.statisticChannel:
+				{
+					// do not care race
+					if h == "" {
+						_, _, serviceName, err := createService(s.conn, s.psm)
+						if err != nil {
+							panic(err)
+						}
+						s.loadBalanceChannel <- serviceName
+					} else if _, exist := s.statistic[h]; exist {
+						s.statistic[h] = s.statistic[h] + 1
+					} else {
+						s.statistic[h] = 1;
+					}
+
+					if s.statistic[h] > zconst.YurtPoolMaxSize*len(s.hosts.Hosts[h]) {
+						s.loadBalanceChannel <- h
+					}
+				}
+			case <-ticker.C:
+				{
+					// refresh
+					s.statistic = make(map[string]int)
 				}
 			default:
 				{
@@ -218,7 +242,7 @@ func (s *Server) Start(sourcePort string, conn *zk.Conn, slotBegin uint32, slotE
 
 							err := s.scheduler.Schedule(pre.(string), "")
 							if err != nil {
-								panic(err)
+								fmt.Printf("231 :%v\n", err.Error())
 							}
 						}
 					}

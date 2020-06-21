@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"sync"
 
@@ -25,14 +26,19 @@ func NewSlotCluster(conn *zk.Conn) SlotCluster {
 		panic(err)
 	}
 	config := make(map[uint32]string)
-	// here we do not need to worry about race, becase you should be zeus master can reach here
+	// here we do not need to worry about race, because you should be zeus master can reach here
 	if exist {
+
+		fmt.Println("init slotCluster from zk")
 		data, _, err := conn.Get(zconst.SlotsRoot)
 		if err != nil {
 			panic(err)
 		}
 		dec := gob.NewDecoder(bytes.NewBuffer(data))
 		err = dec.Decode(&config)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		// default init
 		for i := uint32(0); i < zconst.TotalSlotNum; i = i + 1 {
@@ -72,9 +78,10 @@ func (sc *SlotCluster) Hash(Key string) (string, error) {
 //Dispatch will let some slot belong to some service
 func (sc *SlotCluster) Dispatch(begin uint32, end uint32, service string) error {
 	sc.lock.Lock()
+	fmt.Printf("dispatch service:%v begin:%v, end:%v\n", service, begin, end)
 	// TODO SET rollback machanism
 	defer sc.lock.Unlock()
-	for i := begin; i < end; i = i + 1 {
+	for i := begin; i < end; i += 1 {
 		sc.slots[i] = service
 	}
 	buf := new(bytes.Buffer)
