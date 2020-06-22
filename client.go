@@ -74,7 +74,7 @@ func main() {
 		case "R":
 			{
 				// {master addr} {R} {Key}
-				sourceReply, err := zeusClient.Source(ctx, &zsource.SourceRequest{Key: param[2], Action: zconst.ActionDelete})
+				sourceReply, err := zeusClient.Source(ctx, &zsource.SourceRequest{Key: param[2], Action: zconst.ActionRead})
 				if err != nil {
 					fmt.Println(err.Error())
 				} else {
