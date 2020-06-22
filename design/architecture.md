@@ -2,7 +2,7 @@
 
 ![architecture](./images/architecture.png)
 
-ThunderYurts 的是一个保证最终一致性的
+ThunderYurts 的是一个保证最终一致性的分布式存储
 
 Zeus 作为 Coordinator 的角色出现负责主要控制平面，并不做任何键值对的存储工作，并且所有的状态在内存中进行 Cache，存储在 ZooKeeper 中（即出现故障也可以从 ZooKeeper 中恢复），从而实现 stateless，能够更加方便的实现 Zeus 的多种模式，使得架构 Scalability 和 Availability 能得以提升。
 
@@ -53,12 +53,15 @@ Zeus Master 在初始化时首先需要同步 ZooKeeper ，恢复相应的 Watch
 我们需要强调是，在 ThunderYurts 中 Service是有一定的 自主调控能力的，并最终将自主调控的结果将通过 Service 反馈给 Zeus（Zeus 会对管理的 Service 进行 Watch），Service 中存在 Primary, Secondary 的职责分配，Primary 负责读写操作，并且提供 Sync Server 供所有的 Secondary 进行同步，Secondary 负责读操作，并从 Sync Server 不断获取到新的 Log 实现主从同步，并持续观察 Service 以同步 Master。
 
 自主调控主要体现在主从切换和服务发现两个方面。
+
 **主从切换**：当 Service 的 Primary 发生崩溃的情况下，因为所有的 Secondary 都在以抢占式地创建同样的 Ephemeral Node，因此 Secondary 中的某一位会重新成为 Primary，作如下处理：
 1. 将该Service 设置为 Locked，即不向外提供写操作
 2. 修改 Primary 为新的 Host
 3. 所有的 Secondary 向新 Primary 发送 Sync 请求，建立长连接
 4. Secondary 同步到新 Primary 的 Log，此时可能会出现 UNDO 的情况（抢到 Primary 的服务可能并不是 Log 更新最新的一个）
+
 ![request](./images/yurt-election.png)
+
 **服务发现**：当 Service 中有 Secondary 丢失连接，则 Primary 需要修改 Service 的 Secondary 字段以通知 Zeus 进行更新。
 
 ## Data Transform
@@ -86,3 +89,4 @@ indirect: 间接调用 Gaia 启动新 Yurt 进入到的 Yurt Pool 以待被调�
 同时 Gaia 会提供本节点上服务的ip+port，Zeus 考虑到将同一个的 Service 的 Yurt 分配到不同的 Node 上，以避免 Node 崩溃导致整个服务直接崩溃。
 
 ![yurt-distribution](./images/yurt-distribution.png)
+

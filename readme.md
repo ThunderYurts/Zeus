@@ -14,7 +14,7 @@ Zeus 支持两种模式，可以是可以是主从模式，也可以是 Replica 
 
 **Replica** : Zeus 支持 replica ，也是因起 stateless 的特性，能够让 Zeus 负责部分 Yurts 的管理。从而在一定程度上能够提升Availability。
 
-## Task
+## Slots
 
 1. 负责使用类似 Redis virtual slots 对已经注册 Yurt 进行工作的分配，分配的结果将记录在 Zookeeper 中。
 2. 负责对于 Yurt 节点增加或减少情况的处理，需要协调数据的转移。
@@ -27,5 +27,9 @@ Zookeeper：负责整个的 ThunderYurts 集群的管理
 
 gRPC：负责与 Yurt 进行交互，例如控制数据转移等等。
 
+## Disadvantage
 
+1. Zookeeper Watcher 的数量较多，将会使得Zookeeper的性能将成为 ThunderYurts 扩展的瓶颈
+2. 仅支持使用公网IP，由于并没有通过配置CNM/CNI，因此所有的请求不能够感知到内网IP的存在，我们只能使用公网IP来绕过该项事宜。
+3. 日志方面并未做任何优化工作，仅仅是实现了WAL的基本功能，日志的大小随着使用的时间线性增长，可以进行一定程度的优化，但这不是该课程的重点，因此不作讨论。
 
