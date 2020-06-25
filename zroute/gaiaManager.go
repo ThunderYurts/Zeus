@@ -88,7 +88,7 @@ func (co *GaiaManager) Collect() {
 
 func score(CPU float64, Memory float64) float64 {
 	// STRANGE MATH FUNCTION
-	return 100.0 / CPU + 100.0 / (Memory * Memory)
+	return 100.0 / (1 + CPU) + 100.0 / ( 1 + (Memory * Memory))
 }
 
 func (co *GaiaManager) Create(addr string, serviceName string) error {
@@ -98,15 +98,17 @@ func (co *GaiaManager) Create(addr string, serviceName string) error {
 		if len(keys) == 0 {
 			return NOT_ENOUGH_GAIA
 		}
-		minScore := float64(0.0)
-		minKey := ""
+		maxScore := float64(0.0)
+		maxKey := ""
+		fmt.Printf("in gaiamanager create keys %v\n", keys)
 		for key, value := range co.Monitors {
 			s := score(value.CPU, value.Memory)
-			if s > minScore {
-				minKey = key
+			if s > maxScore {
+				maxScore = s
+				maxKey = key
 			}
 		}
-		addr = co.Monitors[minKey].CreateAddr
+		addr = co.Monitors[maxKey].CreateAddr
 	}
 	createConn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
